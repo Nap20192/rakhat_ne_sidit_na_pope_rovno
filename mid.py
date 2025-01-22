@@ -37,10 +37,12 @@ def search_web(query, engine="Google"):
     else:
         data = []
 
-    with open("search_results.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-    
     return data
+
+# Save Data Function
+def save_data(query, data):
+    with open("search_results.json", "w", encoding="utf-8") as f:
+        json.dump({"query": query, "data": data}, f, ensure_ascii=False, indent=4)
 
 # Embedding Generation
 def generate_embeddings(data):
@@ -88,6 +90,7 @@ def main():
                 st.error("No results found. Try a different query.")
                 return
             
+            save_data(user_query, scraped_data)
             embeddings = generate_embeddings(scraped_data)
             store_in_chromadb(scraped_data, embeddings)
             chain = setup_agent()

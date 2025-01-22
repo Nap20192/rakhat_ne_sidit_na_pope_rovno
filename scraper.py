@@ -3,20 +3,38 @@ from bs4 import BeautifulSoup as bs
 from fake_useragent import UserAgent
 import json
 
+l = ["https://ru.wikipedia.org/wiki/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%BA%D0%BE%D0%BC%D0%BF%D1%8C%D1%8E%D1%82%D0%B5%D1%80", "https://ru.wikipedia.org/wiki/Linux"]
+
 def scrap_web(url):
     headers = {"User-Agent": UserAgent().random}
     response = requests.get(url, headers=headers)
+    soup = bs(response.text, "html.parser")
+    all_p = soup.find_all("p")
+    data = [p.text for p in all_p]
     
-    if response.headers.get('Content-Type') == 'application/json':
-        data = response.json()
-        with open("scraped_data.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-        return data
-    else:
-        soup = bs(response.text, "html.parser")
-        with open("scraped_data.html", "w", encoding="utf-8") as f:
-            f.write(soup.prettify())
-        return soup
+    return {"url": url, "data": data}
+
+def save_scraped_data(scraped_data, filename="scraped_data.json"):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(scraped_data, f, ensure_ascii=False, indent=4)
+
+def links_scraped_data(links):
+    try:
+        with open("scraped_data.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {"links": [], "data": []}
+    
+    all_data = []
+    for link in links:
+        if link in data["links"]:
+            continue
+        else:
+            scraped_data = scrap_web(link)
+            all_data.append(scraped_data)
+            data["links"].append(link)
+            data["data"].append(scraped_data)
+    save_scraped_data(data)
 
 def search_web(query):
     url = f"https://www.google.com/search?q={query}"
@@ -29,8 +47,6 @@ def search_web(query):
     "Connection": "keep-alive",
     "Host": "www.google.com",
 }
-    
-
     response = requests.get(url, headers=headers)
     response.encoding = 'UTF-8'
     soup = bs(response.text, "html.parser")
@@ -53,6 +69,7 @@ def search_web(query):
     return links
 
 if __name__ == "__main__":
-    url = "https://dev.to/spara_50/rag-with-web-search-2c3e"
-    web = search_web("apple")
-    data = scrap_web(url)
+    url = "https://ru.wikipedia.org/wiki/Apple"
+    scrap = scrap_web(url)
+    save_scraped_data(scrap)
+    links_scraped_data(l)
