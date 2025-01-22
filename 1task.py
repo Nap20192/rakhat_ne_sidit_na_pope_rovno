@@ -8,24 +8,12 @@ from langchain.chat_models import ChatOllama
 import streamlit as st
 
 # Web Scraping Function
-def search_web(query, engine="Google"):
-    if engine.lower() == "google":
-        url = f"https://www.google.com/search?q={query}"
-    elif engine.lower() == "bing":
-        url = f"https://www.bing.com/search?q={query}"
-    elif engine.lower() == "yandex":
-        url = f"https://yandex.com/search/?text={query}"
-    else:
-        raise ValueError("Unsupported search engine")
-
+def search_web(query):
+    url = f"https://www.google.com/search?q={query}"
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, "html.parser")
-    
-    if engine.lower() == "google":
-        results = soup.select("div.tF2Cxc")
-        return [{"title": r.select_one("h3").text, "snippet": r.select_one(".VwiC3b").text} for r in results]
-    return []
+    return [{"title": r.select_one("h3").text, "snippet": r.select_one(".VwiC3b").text} for r in soup.select("div.tF2Cxc")]
 
 # Embedding Generation
 def generate_embeddings(data):
@@ -33,7 +21,7 @@ def generate_embeddings(data):
     return [embeddings.embed_query(item["snippet"]) for item in data]
 
 # ChromaDB Storage
-client = chromadb.Client(Settings(chroma_api_impl="local"))
+client = chromadb.Client()
 collection = client.get_or_create_collection("search_results")
 
 def store_in_chromadb(data, embeddings):
