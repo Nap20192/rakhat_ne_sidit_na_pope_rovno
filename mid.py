@@ -6,20 +6,49 @@ from langchain.embeddings import OllamaEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chat_models import ChatOllama
 import streamlit as st
+from fake_useragent import UserAgent
+import json
 
 # Web Scraping Function
-def search_web(query):
-    url = f"https://www.google.com/search?q={query}"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, "html.parser")
-    return [{"title": r.select_one("h3").text, "snippet": r.select_one(".VwiC3b").text} for r in soup.select("div.tF2Cxc")]
+def search_web(query, engine="Google"):
+    if engine.lower() == "google":
+        url = f"https://www.google.com/search?q={query}"
+    elif engine.lower() == "bing":
+        url = f"https://www.bing.com/search?q={query}"
+    elif engine.lower() == "yandex":
+        url = f"https://yandex.com/search/?text={query}"
+    else:
+        raise ValueError("Unsupported search engine")
 
+    headers = {"User-Agent": UserAgent().random}
+    response = requests.get(url, headers=headers)
+    response.encoding = 'utf-8'  # Explicitly set the encoding
+    soup = BeautifulSoup(response.text, "html.parser")
+    
+    if engine.lower() == "google":
+        results = soup.select("div.tF2Cxc")
+        data = [{"title": r.select_one("h3").text, "snippet": r.select_one(".VwiC3b").text} for r in results]
+    elif engine.lower() == "bing":
+        results = soup.select("li.b_algo")
+        data = [{"title": r.select_one("h2").text, "snippet": r.select_one("p").text} for r in results]
+    elif engine.lower() == "yandex":
+        results = soup.select("li.serp-item")
+        data = [{"title": r.select_one("h2").text, "snippet": r.select_one("div.text-container").text} for r in results]
+    else:
+        data = []
+
+    with open("search_results.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+    
+    return data
+
+# Embedding Generation
 def generate_embeddings(data):
     embeddings = OllamaEmbeddings()
     return [embeddings.embed_query(item["snippet"]) for item in data]
 
-client = chromadb.Client()
+# ChromaDB Storage
+client = chromadb.Client(Settings(chroma_api_impl="local"))
 collection = client.get_or_create_collection("search_results")
 
 def store_in_chromadb(data, embeddings):
@@ -32,7 +61,6 @@ def store_in_chromadb(data, embeddings):
 
 # ChromaDB Query
 def query_chromadb(query):
-    
     embedding = OllamaEmbeddings().embed_query(query)
     results = collection.query(query_embeddings=[embedding], n_results=5)
     return results
@@ -71,8 +99,6 @@ def main():
             st.subheader("Sources")
             for doc in response['source_documents']:
                 st.write(f"- {doc['metadata']['title']}")
-
-
 
 if __name__ == "__main__":
     main()
