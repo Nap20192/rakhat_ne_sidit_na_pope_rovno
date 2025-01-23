@@ -1,11 +1,52 @@
 import streamlit as st
 from langchain.chat_models import ChatOllama
 from langchain.schema import HumanMessage, AIMessage
+import chromadb
+import sqlite3
+import json
+from web_scraper import search_with_playwright,links_scraped_data_with_playwright
+import ollama
+
+client = chromadb.Client()
+collection = client.create_collection("search_results")
+
+def data_load():
+    with open("scraped_data.json", "r", encoding="utf-8") as file:
+        data = json.load(file)
+    data = data["data"]
+    text = []
+    for item in data:
+        text.append(item["data"])
+    return text
+
+def data_from_web(query):
+    response = ollama.embeddings(
+        prompt=query,
+        model="mxbai-embed-large"
+    )
+    results = collection.query(
+        query_embeddings=[response["embedding"]],
+        n_results=1
+    )
+    data = results['documents'][0][0]
+    return data
+
+def generate_embeddings(data):
+    for chunk in data:
+        response = ollama.embeddings(model="mxbai-embed-large", prompt=chunk)
+        embedding = response["embedding"]
+        collection.add(
+            ids=[str(st.session_state.i)], 
+            embeddings=[embedding],
+            documents=[chunk]
+        )
+        st.session_state.i+=1
+        st.write(chunk)
+
 
 def generate_response_with_ollama(prompt, model, history, documents):
     # Configure LangChain's ChatOllama model
     llm = ChatOllama(model=model, base_url="http://localhost:11434")  # Replace with your Ollama server URL if different
-
     # Convert session state history into LangChain's message types
     messages = []
     for msg in history:
@@ -49,6 +90,16 @@ if 'documents' not in st.session_state:
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 
+query = st.text_input("Enter a query to search the internet:")
+
+if query:
+    search_with_playwright(query)
+
+    with open("search_results.json", "r", encoding="utf-8") as file:
+        data = json.load(file)
+    print(data)
+
+    links_scraped_data_with_playwright(data['links'])
 # File uploader section
 uploaded_files = st.file_uploader("Upload Files", accept_multiple_files=True)
 new_documents = []
@@ -71,7 +122,7 @@ for message in st.session_state.messages:
 prompt = st.chat_input("Ask a question about the uploaded documents:")
 
 # Sidebar for model selection
-model = st.sidebar.selectbox("Which LLM would you like to use?", ("llama2", "dolphin-llama3"))  # Specify ChatOllama-compatible models
+model = st.sidebar.selectbox("Which LLM would you like to use?", ("llama2", "dolphin-llama3","llama3"))  # Specify ChatOllama-compatible models
 
 if prompt:
     st.chat_message("user").write(prompt)

@@ -44,10 +44,7 @@ def links_scraped_data_with_playwright(links):
           data["links"].append(link)
           data["data"].append(scraped_data)
         except:
-            continue
-        
-        
-        
+            continue   
     save_scraped_data(data)
 
 
@@ -82,7 +79,7 @@ def search_with_playwright(query):
 
 if __name__ == "__main__":
     # Example search query
-    query = "Trump won the election"
+    query = "apple fruit"
     search_with_playwright(query)
 
     # Loading the search result file and printing links
