@@ -33,18 +33,26 @@ def save_scraped_data(scraped_data, filename="scraped_data.json"):
 def links_scraped_data_with_playwright(links):
     data = {"links": [], "data": []}
 
+    can_scrape = False
     all_data = []
-
-    for link in links[:1]:
+    print(links)
+    for link in l[:2]:
         if link in data["links"]:
             continue
-        scraped_data = scrap_web_with_playwright(link)
-        all_data.append(scraped_data)
-        try:
-          data["links"].append(link)
-          data["data"].append(scraped_data)
-        except:
+        
+        ignore = ["https://instagram.com", "https://facebook.com", "https://youtube.com", "https://x.com"]
+
+        if link in ignore:
             continue
+        else:
+            scraped_data = scrap_web_with_playwright(link)
+            all_data.append(scraped_data)
+            try:
+                data["links"].append(link)
+                data["data"].append(scraped_data)
+            except:
+                continue
+
         
         
         
