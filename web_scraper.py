@@ -35,7 +35,7 @@ def links_scraped_data_with_playwright(links):
 
     all_data = []
 
-    for link in links[:3]:
+    for link in links[:1]:
         if link in data["links"]:
             continue
         scraped_data = scrap_web_with_playwright(link)
@@ -44,7 +44,10 @@ def links_scraped_data_with_playwright(links):
           data["links"].append(link)
           data["data"].append(scraped_data)
         except:
-            continue   
+            continue
+        
+        
+        
     save_scraped_data(data)
 
 
@@ -79,7 +82,7 @@ def search_with_playwright(query):
 
 if __name__ == "__main__":
     # Example search query
-    query = "apple fruit"
+    query = "Trump won the election"
     search_with_playwright(query)
 
     # Loading the search result file and printing links
