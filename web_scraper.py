@@ -1,5 +1,7 @@
 import json
+import requests
 from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup as bs
 from fake_useragent import UserAgent
 
 # List of URLs for scraping
@@ -7,23 +9,18 @@ l = ["https://ru.wikipedia.org/wiki/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D
      "https://ru.wikipedia.org/wiki/Linux"]
 
 def scrap_web_with_playwright(url):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        
-        user_agent = UserAgent().random
-        context = browser.new_context(user_agent=user_agent)
-        
-        page = context.new_page()
-
-        page.goto(url)
-
-        page.wait_for_selector("p")
-
-        data = [p.text_content() for p in page.query_selector_all("p")]
-
-        browser.close()
-
+    headers = {"User-Agent": UserAgent().random}
+    try:
+        response = requests.get(url, headers=headers)
+        soup = bs(response.text, "html.parser")
+        all_p = soup.find_all("p")
+        data = [p.text for p in all_p]
         return {"url": url, "data": data}
+    except:
+        return {"url": url, "data": "Failed to retrieve data"}
+    
+
+    
 
 def save_scraped_data(scraped_data, filename="scraped_data.json"):
     with open(filename, "w", encoding="utf-8") as f:
@@ -33,26 +30,18 @@ def save_scraped_data(scraped_data, filename="scraped_data.json"):
 def links_scraped_data_with_playwright(links):
     data = {"links": [], "data": []}
 
-    can_scrape = False
     all_data = []
-    print(links)
-    for link in l[:2]:
+
+    for link in links:
         if link in data["links"]:
             continue
-        
-        ignore = ["https://instagram.com", "https://facebook.com", "https://youtube.com", "https://x.com"]
-
-        if link in ignore:
+        scraped_data = scrap_web_with_playwright(link)
+        all_data.append(scraped_data)
+        try:
+          data["links"].append(link)
+          data["data"].append(scraped_data)
+        except:
             continue
-        else:
-            scraped_data = scrap_web_with_playwright(link)
-            all_data.append(scraped_data)
-            try:
-                data["links"].append(link)
-                data["data"].append(scraped_data)
-            except:
-                continue
-
         
         
         
