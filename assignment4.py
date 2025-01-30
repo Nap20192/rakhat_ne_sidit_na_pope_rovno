@@ -4,9 +4,11 @@ from langchain.schema import HumanMessage, AIMessage
 import chromadb
 import sqlite3
 import json
-from web_scraper import search_with_playwright, links_scraped_data_with_playwright
+from web_scraper import search_with_playwright, scrape_data_from_links, download_images
 import ollama
 import asyncio
+import urllib.request
+import pathlib
 
 client = chromadb.Client()
 collection = client.get_or_create_collection("search_result")
@@ -22,7 +24,7 @@ def data_load():
     # print(len(text))
     return text
 
-def data_from_web(prompt, documents, model):
+async def data_from_web(prompt, documents, model):
     response = ollama.embeddings(
         prompt=prompt,
         model="mxbai-embed-large"
@@ -36,7 +38,7 @@ def data_from_web(prompt, documents, model):
         model=model,
         prompt=f"Using this document data: {documents} and using this web data: {data}. Respond to this prompt: {prompt}"
     )
-    return output['response']
+    col1.chat_message("assistant").write(output['response'])
 
 def generate_embeddings(data):
     for i, d in enumerate(data):
@@ -86,6 +88,28 @@ def process_uploaded_files(uploaded_files):
             documents.append(f"Unable to process file '{uploaded_file.name}'")
     return documents
 
+
+async def img_output(images):
+    for image in images:
+        res = ollama.chat(
+            model="llava",
+            messages=[
+                {
+                    'role': 'user',
+                    'content': 'Describe this image:',
+                    'images': [f'./img/{image}']
+                }
+            ]
+        )
+    col1.chat_message("assistant").write(res['message']['content'])
+
+
+async def concurrence():
+    await asyncio.gather(
+            data_from_web(prompt, st.session_state.documents, model),
+            img_output(file_names)
+        )
+
 st.set_page_config(page_title="Document Query System with LangChain (ChatOllama)", layout="wide")
 
 
@@ -118,7 +142,11 @@ if 'chunks' not in st.session_state:
 #     generate_embeddings(d)
 
 # File uploader section
-uploaded_files = st.file_uploader("Upload Files", accept_multiple_files=True)
+col1, col2 = st.columns(2)
+col1.write(f"# :blue[Chat]")
+col2.write(f"# :red[Image Description]")
+
+uploaded_files = col1.file_uploader("Upload Files", accept_multiple_files=True)
 new_documents = []
 
 if uploaded_files:
@@ -133,17 +161,17 @@ if new_documents:
 
 
 for message in st.session_state.messages:
-    st.chat_message(message['role']).write(message['content'])
+    col1.chat_message(message['role']).write(message['content'])
 
 
 prompt = st.chat_input("Ask a question about the uploaded documents:")
 
 
-model = st.sidebar.selectbox("Which LLM would you like to use?", ("llama3", "dolphin-llama3", "llama2"))
+model = st.sidebar.selectbox("Which LLM would you like to use?", ("tinyllama", "llama3", "dolphin-llama3", "llama2"))
 use_web = st.sidebar.selectbox("Would you like me to search the web?", ("Yes", "No"))
 
 if prompt:
-    st.chat_message("user").write(prompt)
+    col1.chat_message("user").write(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     if use_web == "Yes":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -153,11 +181,30 @@ if prompt:
             data = json.load(file)
         print(data)
 
-        links_scraped_data_with_playwright(data['links'])
+        scrape_data_from_links(data['links'])
         d = data_load()
         generate_embeddings(d)
-        ai_reply = data_from_web(prompt, st.session_state.documents, model)
+        print("GENERATED EMBEDDINGS")
+
+        
+        with open("scraped_data.json", "r", encoding="utf-8") as file:
+            scraped_data = json.load(file)
+
+
+        for data in scraped_data["data"]:
+            download_images(data["img_links"])
+        print("DOWNLOADED")
+
+        directory = pathlib.Path("img")
+        file_names = [file.name for file in directory.rglob("*") if file.is_file()]
+        print(file_names)
+
+        asyncio.run(concurrence())
+        
     else:
         ai_reply = generate_response_with_ollama(prompt, model, st.session_state.messages, st.session_state.documents)
-    st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-    st.chat_message("assistant").write(ai_reply)
+        st.session_state.messages.append({"role": "assistant", "content": ai_reply})
+        col1.chat_message("assistant").write(ai_reply)
+
+
+
