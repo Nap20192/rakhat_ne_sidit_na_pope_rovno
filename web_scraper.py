@@ -46,7 +46,7 @@ def scrape_data_from_links(links):
 
     img_links = {"links": []}
 
-    for link in links[:3]:
+    for link in links[1:4]:
         if link in data["links"]:
             continue
         scraped_data = scrape_web_pages(link)

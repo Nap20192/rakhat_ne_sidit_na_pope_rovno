@@ -2,16 +2,23 @@ import streamlit as st
 from langchain.chat_models import ChatOllama
 from langchain.schema import HumanMessage, AIMessage
 import chromadb
-import sqlite3
 import json
 from web_scraper import search_with_playwright, scrape_data_from_links, download_images
 import ollama
 import asyncio
-import urllib.request
 import pathlib
+from transformers import AutoTokenizer, AutoModel
 
-client = chromadb.Client()
-collection = client.get_or_create_collection("search_result")
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+
+
+def tokenize_text(text):
+    tokens = tokenizer.tokenize(text)
+    return tokens
+
+
+client = chromadb.PersistentClient(path="./chroma_db")
+collection = client.get_or_create_collection(name="my_collection")
 
 def data_load():
     with open("scraped_data.json", "r", encoding="utf-8") as file:
@@ -21,12 +28,14 @@ def data_load():
     for item in data:
         for it in item["data"]:
             text.append(it)
-    # print(len(text))
-    return text
+    generate_embeddings(text)
+    print("GENERATED EMBEDDINGS")
+
 
 async def data_from_web(prompt, documents, model):
+    tokenized_prompt = " ".join(tokenize_text(prompt))
     response = ollama.embeddings(
-        prompt=prompt,
+        prompt=tokenized_prompt,
         model="mxbai-embed-large"
     )
     results = collection.query(
@@ -40,9 +49,12 @@ async def data_from_web(prompt, documents, model):
     )
     col1.chat_message("assistant").write(output['response'])
 
+
 def generate_embeddings(data):
     for i, d in enumerate(data):
-        response = ollama.embeddings(model="mxbai-embed-large", prompt=d)
+        tokens = tokenize_text(d)
+        tokenized_text = " ".join(tokens) 
+        response = ollama.embeddings(model="mxbai-embed-large", prompt=tokenized_text)
         embedding = response["embedding"]
         print(f"IDs: {len(str(i))}, Embeddings: {len(embedding)}, Documents: {len(d)}")
         try:
@@ -56,20 +68,23 @@ def generate_embeddings(data):
 
 def generate_response_with_ollama(prompt, model, history, documents):
     llm = ChatOllama(model=model, base_url="http://localhost:11434")
-    
     messages = []
     for msg in history:
         if msg['role'] == 'user':
-            messages.append(HumanMessage(content=msg['content']))
+            tokens = tokenize_text(msg['content'])
+            tokenized_content = " ".join(tokens)
+            messages.append(HumanMessage(content=tokenized_content))
         elif msg['role'] == 'assistant':
             messages.append(AIMessage(content=msg['content']))
         else:
             raise ValueError(f"Unsupported message type: {msg['role']}")
     
-    context = "\n".join(documents)
-    prompt_with_context = f"Documents content: {context}\n\nUser's question: {prompt}"
-    messages.append(HumanMessage(content=prompt_with_context))
+    tokenized_documents = [" ".join(tokenize_text(doc)) for doc in documents]
+    context = "\n".join(tokenized_documents)
+    tokenized_prompt = " ".join(tokenize_text(prompt))
+    prompt_with_context = f"Documents content: {context}\n\nUser's question: {tokenized_prompt}"
 
+    messages.append(HumanMessage(content=prompt_with_context))
     try:
         response = llm(messages)
         return response.content
@@ -91,6 +106,7 @@ def process_uploaded_files(uploaded_files):
 
 async def img_output(images):
     for image in images:
+        print('IMAGE',image)
         res = ollama.chat(
             model="llava",
             messages=[
@@ -101,7 +117,8 @@ async def img_output(images):
                 }
             ]
         )
-    col1.chat_message("assistant").write(res['message']['content'])
+    col2.chat_message("assistant").write(f"**Image Description:** {res['message']['content']}") 
+    print('DDDDDDD',res['message']['content'])
 
 
 async def concurrence():
@@ -183,8 +200,7 @@ if prompt:
 
         scrape_data_from_links(data['links'])
         d = data_load()
-        generate_embeddings(d)
-        print("GENERATED EMBEDDINGS")
+
 
         
         with open("scraped_data.json", "r", encoding="utf-8") as file:
