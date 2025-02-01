@@ -1,5 +1,5 @@
 import streamlit as st
-from langchain.chat_models import ChatOllama
+from langchain_community.chat_models import ChatOllama
 from langchain.schema import HumanMessage, AIMessage
 import chromadb
 import json
@@ -33,6 +33,7 @@ def data_load():
 
 
 async def data_from_web(prompt, documents, model):
+    print("LLM WORKING")
     tokenized_prompt = " ".join(tokenize_text(prompt))
     response = ollama.embeddings(
         prompt=tokenized_prompt,
@@ -105,6 +106,7 @@ def process_uploaded_files(uploaded_files):
 
 
 async def img_output(images):
+    print("ANALYZING PICTURES")
     for image in images:
         print('IMAGE',image)
         res = ollama.chat(
@@ -196,7 +198,6 @@ if prompt:
 
         with open("search_results.json", "r", encoding="utf-8") as file:
             data = json.load(file)
-        print(data)
 
         scrape_data_from_links(data['links'])
         d = data_load()

@@ -28,7 +28,9 @@ def scrape_images(url):
     headers = {"User-Agent": UserAgent().random}
     response = requests.get(url, headers=headers)
     soup = bs(response.text, "html.parser")
-     
+    img_tags = soup.find_all('img')
+    img_links = [img['src'] for img in img_tags if 'src' in img.attrs]
+    return img_links
     
 
     
@@ -46,7 +48,7 @@ def scrape_data_from_links(links):
 
     img_links = {"links": []}
 
-    for link in links[1:4]:
+    for link in links[:3]:
         if link in data["links"]:
             continue
         scraped_data = scrape_web_pages(link)
@@ -55,23 +57,32 @@ def scrape_data_from_links(links):
           data["links"].append(link)
           data["data"].append(scraped_data)
           img_links["links"].extend(scrape_images(link))
-        except:
+          print(f"Scraped data from {link}")
+        except Exception as e:
+            print(f"Failed to scrape data from {link}: {e}")
             continue
         
         
     save_scraped_data(img_links, filename="scraped_images.json")  
     save_scraped_data(data)
 
+def normalize_link(link):
+    if link.startswith("//"):
+        return "https:" + link
+    return link
 
 def download_images(img_links):
     counter = 0
     for link in img_links:
-        if "https" in link:
+        link = normalize_link(link)
+        if "https" not in link:
+            continue
+        try:
+            urllib.request.urlretrieve(link, f"img/{counter}.png")
             counter += 1
-            try:
-                urllib.request.urlretrieve(link, f"img/{counter}.jpg")
-            except:
-                continue
+        except Exception as e:
+            print(f"Failed to download image from {link}: {e}")
+            continue
         if counter >= 3:
             break
 
@@ -116,7 +127,6 @@ if __name__ == "__main__":
 
     with open("scraped_data.json", "r", encoding="utf-8") as file:
         scraped_data = json.load(file)
-    print(scraped_data)
 
     for data in scraped_data["data"]:
         download_images(data["img_links"])
