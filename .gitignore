@@ -1,6 +1,8 @@
 scraped_data.json
+scraped_results.json
+scraped_images.json
 
-/img/
+/img/*
 
-/chromadb/
+/chromadb/*
 /__pycache__/
