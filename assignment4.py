@@ -90,7 +90,7 @@ def generate_response_with_ollama(prompt, model, history, documents):
         response = llm(messages)
         return response.content
     except ValueError as e:
-        st.error(f"An error occurred while communicating with the Ollama model: {e}")
+        st.error(f"An errorr occurred while communicating with the Ollama model: {e}")
         return "An error occurred while processing your request."
 
 def process_uploaded_files(uploaded_files):
