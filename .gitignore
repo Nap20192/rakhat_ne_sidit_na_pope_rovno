@@ -1,8 +1,4 @@
-scraped_data.json
-scraped_results.json
-scraped_images.json
-
-/img/*
-
-/chromadb/*
+/cash/
+/img/
+/chromadb/
 /__pycache__/

@@ -3,97 +3,12 @@ from langchain_community.chat_models import ChatOllama
 from langchain.schema import HumanMessage, AIMessage
 import chromadb
 import json
-from utils.web_scraper import *
+from web_scraper import search_with_playwright, scrape_data_from_links, download_images
 import ollama
 import asyncio
 import pathlib
 from transformers import AutoTokenizer, AutoModel
 
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-
-
-def tokenize_text(text):
-    tokens = tokenizer.tokenize(text)
-    return tokens
-
-
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection(name="my_collection")
-
-
-def data_load():
-    with open("scraped_data.json", "r", encoding="utf-8") as file:
-        data = json.load(file)
-    data = data["data"]
-    text = []
-    for item in data:
-        for it in item["data"]:
-            text.append(it)
-    generate_embeddings(text)
-    print("GENERATED EMBEDDINGS")
-
-
-async def data_from_web(prompt, documents, model):
-    print("LLM WORKING")
-    tokenized_prompt = " ".join(tokenize_text(prompt))
-    response = ollama.embeddings(
-        prompt=tokenized_prompt,
-        model="mxbai-embed-large"
-    )
-    results = collection.query(
-        query_embeddings=[response["embedding"]],
-        n_results=1
-    )
-    data = results['documents'][0][0]
-    output = ollama.generate(
-        model=model,
-        prompt=f"Using this document data: {documents} and using this web data: {data}. Respond to this prompt: {prompt}"
-    )
-    col1.chat_message("assistant").write(output['response'])
-
-
-def generate_embeddings(data):
-    for i, d in enumerate(data):
-        tokens = tokenize_text(d)
-        tokenized_text = " ".join(tokens)
-        response = ollama.embeddings(model="mxbai-embed-large", prompt=tokenized_text)
-        embedding = response["embedding"]
-        print(f"IDs: {len(str(i))}, Embeddings: {len(embedding)}, Documents: {len(d)}")
-        try:
-            collection.add(
-                ids=[str(i)],
-                embeddings=[embedding],
-                documents=[d]
-            )
-        except:
-            continue
-
-
-def generate_response_with_ollama(prompt, model, history, documents):
-    llm = ChatOllama(model=model, base_url="http://localhost:11434")
-    messages = []
-    for msg in history:
-        if msg['role'] == 'user':
-            tokens = tokenize_text(msg['content'])
-            tokenized_content = " ".join(tokens)
-            messages.append(HumanMessage(content=tokenized_content))
-        elif msg['role'] == 'assistant':
-            messages.append(AIMessage(content=msg['content']))
-        else:
-            raise ValueError(f"Unsupported message type: {msg['role']}")
-
-    tokenized_documents = [" ".join(tokenize_text(doc)) for doc in documents]
-    context = "\n".join(tokenized_documents)
-    tokenized_prompt = " ".join(tokenize_text(prompt))
-    prompt_with_context = f"Documents content: {context}\n\nUser's question: {tokenized_prompt}"
-
-    messages.append(HumanMessage(content=prompt_with_context))
-    try:
-        response = llm(messages)
-        return response.content
-    except ValueError as e:
-        st.error(f"An error occurred while communicating with the Ollama model: {e}")
-        return "An error occurred while processing your request."
 
 
 def process_uploaded_files(uploaded_files):
@@ -107,27 +22,6 @@ def process_uploaded_files(uploaded_files):
             documents.append(f"Unable to process file '{uploaded_file.name}'")
     return documents
 
-
-async def img_output(images):
-    print("ANALYZING PICTURES")
-    for image in images:
-        print('IMAGE', image)
-        try:
-            res = ollama.chat(
-                model="llava",
-                messages=[
-                    {
-                        'role': 'user',
-                        'content': 'Describe this image:',
-                        'images': [f'./img/{image}']
-                    }
-                ]
-            )
-            col2.chat_message("assistant").write(f"**Image Description:** {res['message']['content']}")
-        except:
-            continue
-
-    print('DDDDDDD', res['message']['content'])
 
 
 async def concurrence():
