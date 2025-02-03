@@ -3,10 +3,9 @@ from langchain_core.documents import Document
 from assignment4 import collection
 
 
-def embeding(docs: list[Document], embeding_model ="mxbai-embed-large") -> None:
+def embeding(docs: list[Document], embeding_model ="mxbai-embed-large"):
     for i, doc in enumerate(docs):
         text = doc.page_content
-        metadata = doc.get("metadata", {})
         print(text)
         response = ollama.embed(
             model=embeding_model,
@@ -16,6 +15,5 @@ def embeding(docs: list[Document], embeding_model ="mxbai-embed-large") -> None:
         collection.add(
             ids=[f"chunk_{i}"],
             embeddings=embeddings,
-            metadatas=[metadata]
         )
     print("EMBEDDINGS GENERATED")

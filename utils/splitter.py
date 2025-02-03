@@ -47,17 +47,3 @@ def tokenize_chunks(
     print(tokenized_chunks)
 
     return tokenized_chunks
-
-if __name__ == "__main__":
-    text = data_load()
-    documents = [Document(page_content=i) for i in text]
-
-    split_docs = split_documents(
-        documents,
-        model_name="gpt-4",
-        chunk_size=20,
-        chunk_overlap=10
-    )
-
-    for i in split_docs:
-        print(i.page_content)
