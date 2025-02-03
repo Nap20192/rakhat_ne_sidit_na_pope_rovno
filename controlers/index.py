@@ -2,7 +2,7 @@ import json
 
 from langchain_core.documents import Document
 from models import Prompt
-from utils import unified_scraping_flow, split_documents,data_load,embeding
+from utils import *
 from assignment4 import collection
 class Build:
 
@@ -22,6 +22,10 @@ class Build:
             chunk_overlap=3
         )
         embeding(split_docs,self.embeding_model,collection)
+        imgages = img_load()
+        descriptions = response_img(imgages)
+        print(descriptions)
+        print(generate_response_with_ollama())
 
 if __name__ == "__main__":
     prompt = Prompt("banana fruit")

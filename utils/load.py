@@ -9,6 +9,7 @@ def data_load():
     for item in data:
         for it in item["data"]:
             text.append(it)
+    print("DATA LOADED")
     return text
 
 def img_load():
