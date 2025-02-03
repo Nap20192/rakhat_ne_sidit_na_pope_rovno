@@ -83,18 +83,23 @@ def scrape_data_from_links(links):
 
 def download_images(img_links):
     counter = 1
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+    }
     for link in img_links:
         if "https" not in link or "svg" in link:
             continue
         try:
-            urllib.request.urlretrieve(link, f"../img/{counter}.jpg")
+            req = urllib.request.Request(link, headers=headers)
+            with urllib.request.urlopen(req) as response:
+                with open(f"../img/{counter}.jpg", 'wb') as f:
+                    f.write(response.read())
             counter += 1
         except Exception as e:
             print(f"Failed to download image from {link}: {e}")
             continue
         if counter >= 4:
             break
-
 
 def search_with_playwright(query):
     with sync_playwright() as p:

@@ -8,7 +8,7 @@ from utils import *
 from assignment4 import collection
 class Build:
 
-    def __init__(self, prompt:Prompt, model="llama2",embeding_model = "mxbai-embed-large"):
+    def __init__(self, prompt:Prompt, model="llama2-uncensored",embeding_model = "mxbai-embed-large"):
         self.prompt = prompt
         self.model = model
         self.embeding_model = embeding_model
