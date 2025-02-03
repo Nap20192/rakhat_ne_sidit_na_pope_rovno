@@ -1,11 +1,9 @@
 import json
 
 from langchain_core.documents import Document
-
 from models import Prompt
 from utils import unified_scraping_flow, split_documents,data_load,embeding
-
-
+from assignment4 import collection
 class Build:
 
     def __init__(self, prompt:Prompt, model="llama2",embeding_model = "mxbai-embed-large"):
@@ -14,17 +12,16 @@ class Build:
         self.embeding_model = embeding_model
 
     def Building(self):
-        unified_scraping_flow(self.prompt)
         text = data_load()
+
         documents = [Document(page_content=i) for i in text]
         split_docs = split_documents(
             documents,
             model_name="gpt-4",
-            chunk_size=20,
-            chunk_overlap=10
+            chunk_size=80,
+            chunk_overlap=3
         )
-        embeding(split_docs, self.embeding_model)
-
+        embeding(split_docs,self.embeding_model,collection)
 
 if __name__ == "__main__":
     prompt = Prompt("banana fruit")

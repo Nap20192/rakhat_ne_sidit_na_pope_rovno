@@ -1,9 +1,8 @@
 import ollama
 from langchain_core.documents import Document
-from assignment4 import collection
 
 
-def embeding(docs: list[Document], embeding_model ="mxbai-embed-large"):
+def embeding(docs: list[Document], embeding_model ="mxbai-embed-large",collection=None):
     for i, doc in enumerate(docs):
         text = doc.page_content
         print(text)
@@ -11,7 +10,7 @@ def embeding(docs: list[Document], embeding_model ="mxbai-embed-large"):
             model=embeding_model,
             input=text
         )
-        embeddings = response["embedding"]
+        embeddings = response["embeddings"]
         collection.add(
             ids=[f"chunk_{i}"],
             embeddings=embeddings,
