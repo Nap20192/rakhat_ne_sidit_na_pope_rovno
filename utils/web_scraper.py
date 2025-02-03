@@ -87,7 +87,7 @@ def download_images(img_links):
         if "https" not in link:
             continue
         try:
-            urllib.request.urlretrieve(link, f"../img/{counter}.png")
+            urllib.request.urlretrieve(link, f"../img/{counter}.jpg")
             counter += 1
         except Exception as e:
             print(f"Failed to download image from {link}: {e}")

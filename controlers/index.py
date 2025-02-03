@@ -1,6 +1,8 @@
 import json
 
 from langchain_core.documents import Document
+from statsmodels.base.covtype import descriptions
+
 from models import Prompt
 from utils import *
 from assignment4 import collection
@@ -12,8 +14,9 @@ class Build:
         self.embeding_model = embeding_model
 
     def Building(self):
+        unified_scraping_flow(self.prompt)
+        webflag, imgflag = self.prompt.get_flags()
         text = data_load()
-
         documents = [Document(page_content=i) for i in text]
         split_docs = split_documents(
             documents,
@@ -22,12 +25,18 @@ class Build:
             chunk_overlap=3
         )
         embeding(split_docs,self.embeding_model,collection)
-        imgages = img_load()
-        descriptions = response_img(imgages)
-        print(descriptions)
-        print(generate_response_with_ollama())
+        response = data_from_web(self.prompt.get_prompt(),documents,self.model)
+        print(response)
+        if imgflag:
+            imgages = img_load()
+            print(imgages)
+            descriptions = response_img(imgages)
+            return descriptions,response
+        else:
+            return response
+
 
 if __name__ == "__main__":
-    prompt = Prompt("banana fruit")
+    prompt = Prompt("banana fruit",imgflag=True)
     build = Build(prompt)
     build.Building()

@@ -4,6 +4,9 @@ from langchain_core.messages import HumanMessage, AIMessage
 from assignment4 import collection
 import os
 
+from models import Prompt
+
+
 async def generate_response_with_ollama(prompt, model, history, documents):
     llm = ChatOllama(model=model, base_url="http://localhost:11434")
     messages = []
@@ -27,10 +30,10 @@ async def generate_response_with_ollama(prompt, model, history, documents):
         return "An error occurred while processing your request."
 
 
-async def data_from_web(prompt, documents, model):
+def data_from_web(prompt:Prompt, documents, model):
     print("LLM WORKING")
     response = ollama.embeddings(
-        prompt=prompt,
+        prompt=prompt.get_prompt(),
         model="mxbai-embed-large"
     )
     results = collection.query(
@@ -44,29 +47,33 @@ async def data_from_web(prompt, documents, model):
     )
     return output['response']
 
-async def response_img(images):
+def response_img(images):
     print("ANALYZING PICTURES")
     descriptions = {}
-    for image in images:
-        image_path = f'./img/{image}'
+    try:
+        for image in images:
+            image_path = f'../img/{image}'
 
-        if not os.path.exists(image_path):
-            print(f"ERROR: File {image_path} not found.")
-            continue
+            if not os.path.exists(image_path):
+                print(f"ERROR: File {image_path} not found.")
+                continue
 
-        print('Processing IMAGE:', image)
+            print('Processing IMAGE:', image)
 
-        res = ollama.chat(
-            model="llava",
-            messages=[
-                {
-                    'role': 'user',
-                    'content': 'Describe this image:',
-                    'images': [image_path]
-                }
-            ]
-        )
-        description = res['message']['content']
-        descriptions[image] = description
-        print(f"Image Description for {image}: {description}")
-    return descriptions
+            res = ollama.chat(
+                model="llava",
+                messages=[
+                    {
+                        'role': 'user',
+                        'content': 'Describe this image:',
+                        'images': [image_path]
+                    }
+                ]
+            )
+            description = res['message']['content']
+            descriptions[image] = description
+            print(f"Image Description for {image}: {description}")
+        return descriptions
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return {}
