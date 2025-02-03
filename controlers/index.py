@@ -25,7 +25,7 @@ class Build:
             chunk_overlap=3
         )
         embeding(split_docs,self.embeding_model,collection)
-        response = data_from_web(self.prompt.get_prompt(),documents,self.model)
+        response = data_from_web(self.prompt,documents,self.model)
         print(response)
         if imgflag:
             imgages = img_load()
@@ -37,6 +37,6 @@ class Build:
 
 
 if __name__ == "__main__":
-    prompt = Prompt("banana fruit",imgflag=True)
+    prompt = Prompt("HENTAI DESCRIPTION",imgflag=True)
     build = Build(prompt)
     build.Building()
