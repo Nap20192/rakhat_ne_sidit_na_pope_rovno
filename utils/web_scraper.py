@@ -82,9 +82,9 @@ def scrape_data_from_links(links):
 
 
 def download_images(img_links):
-    counter = 0
+    counter = 1
     for link in img_links:
-        if "https" not in link:
+        if "https" not in link or "svg" in link:
             continue
         try:
             urllib.request.urlretrieve(link, f"../img/{counter}.jpg")
@@ -92,7 +92,7 @@ def download_images(img_links):
         except Exception as e:
             print(f"Failed to download image from {link}: {e}")
             continue
-        if counter >= 3:
+        if counter >= 4:
             break
 
 
@@ -119,6 +119,27 @@ def search_with_playwright(query):
         browser.close()
     return links
 
+def search_images_with_playwright(query):
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context(user_agent=UserAgent().random)
+        page = context.new_page()
+        page.goto(f"https://www.bing.com/images/search?q={query}")
+        page.reload()
+        page.wait_for_selector("img.mimg", timeout=10000)
+
+        images = []
+        for img_tag in page.query_selector_all("img.mimg"):
+            src = img_tag.get_attribute("src")
+            if src and "https" in src:
+                images.append(src)
+
+        data = {"images": images}
+        with open("../cash/images_results.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+        browser.close()
+    return images
 
 def clean_image_directory():
     directory = "../img"
@@ -150,7 +171,6 @@ def unified_scraping_flow(search_query:Prompt):
     # Step 1: Perform web search and get links
     print(f"Searching for: {search_query.get_prompt()}")
     search_results = search_with_playwright(search_query.get_prompt())
-
     # Step 2: Scrape content from found links
     print("\nScraping content from top results...")
     scrape_data_from_links(search_results)

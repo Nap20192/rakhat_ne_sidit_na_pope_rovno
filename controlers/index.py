@@ -37,6 +37,6 @@ class Build:
 
 
 if __name__ == "__main__":
-    prompt = Prompt("HENTAI DESCRIPTION",imgflag=True)
+    prompt = Prompt("HENTAI manga",imgflag=True)
     build = Build(prompt)
     build.Building()
