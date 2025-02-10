@@ -2,10 +2,12 @@ import json
 
 from langchain_core.documents import Document
 from statsmodels.base.covtype import descriptions
+import asyncio
+import streamlit as st
 
 from models import Prompt
 from utils import *
-from assignment4 import collection
+
 class Build:
 
     def __init__(self, prompt:Prompt, model="llama2-uncensored",embeding_model = "mxbai-embed-large"):
@@ -13,11 +15,13 @@ class Build:
         self.model = model
         self.embeding_model = embeding_model
 
-    def Building(self):
+    def building(self):
         unified_scraping_flow(self.prompt)
-        webflag, imgflag = self.prompt.get_flags()
+        webflag, imgflag, fileflag = self.prompt.get_flags()
         text = data_load()
         documents = [Document(page_content=i) for i in text]
+        if fileflag:
+            documents.extend(st.session_state.documents)
         split_docs = split_documents(
             documents,
             model_name="gpt-4",
@@ -25,18 +29,22 @@ class Build:
             chunk_overlap=3
         )
         embeding(split_docs,self.embeding_model,collection)
-        response = data_from_web(self.prompt,documents,self.model)
-        print(response)
+
         if imgflag:
-            imgages = img_load()
-            print(imgages)
-            descriptions = response_img(imgages)
-            return descriptions,response
+            images = img_load()
+            print(images)
+            response, descriptions = asyncio.run(concurrent_generation(self.prompt, documents, self.model, images))
+            return descriptions, response
         else:
+            response = data_from_web(self.prompt, documents, self.model)
+            print(response)
             return response
 
 
-if __name__ == "__main__":
-    prompt = Prompt("HENTAI manga",imgflag=True)
-    build = Build(prompt)
-    build.Building()
+# def main():
+#     prompt = Prompt("Who is the president of us?",imgflag=True)
+#     build = Build(prompt)
+#     build.building()
+#
+# if __name__ == "__main__":
+#     main()

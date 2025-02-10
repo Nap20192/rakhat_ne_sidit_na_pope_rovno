@@ -10,12 +10,6 @@ from urllib.parse import urljoin
 
 from models import Prompt
 
-l = [
-    "https://ru.wikipedia.org/wiki/%D0%9F%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%BA%D0%BE%D0%BC%D0%BF%D1%8C%D1%8E%D1%82%D0%B5%D1%80",
-    "https://ru.wikipedia.org/wiki/Linux"
-]
-
-
 def scrape_web_pages(url):
     headers = {"User-Agent": UserAgent().random}
     try:
@@ -51,7 +45,7 @@ def scrape_images(url):
     return img_links
 
 
-def save_scraped_data(scraped_data, filename="../cash/scraped_data.json"):
+def save_scraped_data(scraped_data, filename="../scraped_data.json"):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(scraped_data, f, ensure_ascii=False, indent=4)
 
@@ -92,7 +86,7 @@ def download_images(img_links):
         try:
             req = urllib.request.Request(link, headers=headers)
             with urllib.request.urlopen(req) as response:
-                with open(f"../img/{counter}.jpg", 'wb') as f:
+                with open(f"./img/{counter}.jpg", 'wb') as f:
                     f.write(response.read())
             counter += 1
         except Exception as e:
@@ -118,7 +112,7 @@ def search_with_playwright(query):
                 links.append(href)
 
         data = {"links": links}
-        with open("../cash/search_results.json", "w", encoding="utf-8") as f:
+        with open("../search_results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
         browser.close()
@@ -140,7 +134,7 @@ def search_images_with_playwright(query):
                 images.append(src)
 
         data = {"images": images}
-        with open("../cash/images_results.json", "w", encoding="utf-8") as f:
+        with open("../images_results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
         browser.close()
@@ -182,7 +176,7 @@ def unified_scraping_flow(search_query:Prompt):
 
     # Step 3: Load scraped data to get image links
     try:
-        with open("../cash/scraped_data.json", "r", encoding="utf-8") as f:
+        with open("../scraped_data.json", "r", encoding="utf-8") as f:
             scraped_data = json.load(f)
             all_image_links = []
             for entry in scraped_data["data"]:

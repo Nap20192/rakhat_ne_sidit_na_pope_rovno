@@ -1,11 +1,14 @@
 import ollama
 from langchain_community.chat_models import ChatOllama
 from langchain_core.messages import HumanMessage, AIMessage
-from assignment4 import collection
+import chromadb
 import os
+import asyncio
 
 from models import Prompt
 
+client = chromadb.PersistentClient(path="../chroma_db")
+collection = client.get_or_create_collection(name="my_collection")
 
 async def generate_response_with_ollama(prompt, model, history, documents):
     llm = ChatOllama(model=model, base_url="http://localhost:11434")
@@ -30,7 +33,7 @@ async def generate_response_with_ollama(prompt, model, history, documents):
         return "An error occurred while processing your request."
 
 
-def data_from_web(prompt:Prompt, documents, model):
+async def data_from_web(prompt:Prompt, documents, model):
     print("LLM WORKING")
     response = ollama.embeddings(
         prompt=prompt.get_prompt(),
@@ -45,19 +48,21 @@ def data_from_web(prompt:Prompt, documents, model):
         model=model,
         prompt=f"Using this document data: {documents} and using this web data: {data}. Respond to this prompt: {prompt}"
     )
+    print(output['response'])
     return output['response']
 
-def response_img(images):
+async def response_img(images):
     print("ANALYZING PICTURES")
     descriptions = {}
     try:
+        print(images)
         for image in images:
-            image_path = f'../img/{image}'
+
+            image_path = f'./img/{image}'
 
             if not os.path.exists(image_path):
                 print(f"ERROR: File {image_path} not found.")
                 continue
-
             print('Processing IMAGE:', image)
 
             res = ollama.chat(
@@ -77,3 +82,10 @@ def response_img(images):
     except Exception as e:
         print(f"Error processing image: {e}")
         return {}
+
+async def concurrent_generation(prompt, documents, model, images):
+    response, descriptions = await asyncio.gather(
+        data_from_web(prompt, documents, model),
+        response_img(images)
+    )
+    return response, descriptions

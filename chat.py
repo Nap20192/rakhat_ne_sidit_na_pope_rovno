@@ -63,34 +63,41 @@ use_web = st.sidebar.selectbox(
     ("Yes", "No")
 )
 
+find_images = st.sidebar.selectbox(
+    "Would you like me to find images according to your query?",
+    ("Yes", "No")
+)
+
 # Chat input
-prompt = col1.chat_input("Ask a question about the uploaded documents:")
+prompt = st.chat_input("Ask a question about the uploaded documents:")
 if prompt:
     # Add user message to chat
     col1.chat_message("user").write(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
-
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     try:
-        # Initialize controller
-        prompt_model = Prompt(content=prompt, documents=st.session_state.documents)
+        prompt_model = Prompt(text=prompt)
+        if use_web == "Yes":
+            prompt_model.webflag = True
+
+        if find_images == "Yes":
+            prompt_model.imgflag = True
+
+        if uploaded_files:
+            prompt_model.fileflag = True
+
         builder = Build(prompt=prompt_model, model=model)
 
-        # Handle web search if needed
-        if use_web == "Yes":
-            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-            search_with_playwright(prompt)
-            scrape_data_from_links(data_load().get('links', []))
-            download_images(data_load().get('img_links', []))
-            asyncio.run(concurrence())
 
-        image_descriptions, ai_reply = builder.Building()
+        image_descriptions, ai_reply = builder.building()
         st.session_state.image_descriptions.update(image_descriptions)
         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
         col1.chat_message("assistant").write(ai_reply)
         for img, desc in image_descriptions.items():
+            col2.image(f"./img/{img}")
             col2.write(f"**{img}**: {desc}")
 
     except Exception as e:
         error_msg = f"Error processing request: {str(e)}"
-        col1.error(error_msg)
+        st.error(error_msg)
         st.session_state.messages.append({"role": "assistant", "content": error_msg})
