@@ -10,33 +10,43 @@ from utils import *
 
 class Build:
 
-    def __init__(self, prompt:Prompt, model="llama2-uncensored",embeding_model = "mxbai-embed-large"):
+    def __init__(self, prompt:Prompt, history, model="llama2-uncensored",embeding_model = "mxbai-embed-large", file_documents=""):
         self.prompt = prompt
         self.model = model
         self.embeding_model = embeding_model
+        self.history = history
+        self.file_documents = file_documents
 
     def building(self):
-        unified_scraping_flow(self.prompt)
         webflag, imgflag, fileflag = self.prompt.get_flags()
-        text = data_load()
-        documents = [Document(page_content=i) for i in text]
-        if fileflag:
-            documents.extend(st.session_state.documents)
-        split_docs = split_documents(
-            documents,
-            model_name="gpt-4",
-            chunk_size=80,
-            chunk_overlap=3
-        )
-        embeding(split_docs,self.embeding_model,collection)
 
-        if imgflag:
-            images = img_load()
-            print(images)
-            response, descriptions = asyncio.run(concurrent_generation(self.prompt, documents, self.model, images))
-            return descriptions, response
+        if fileflag:
+            self.file_documents = []
+            self.file_documents.extend(st.session_state.documents)
+
+
+        if webflag:
+            unified_scraping_flow(self.prompt)
+            text = data_load()
+            web_data = [Document(page_content=i) for i in text]
+            split_docs = split_documents(
+                web_data,
+                model_name="gpt-4",
+                chunk_size=80,
+                chunk_overlap=3
+            )
+            embeding(split_docs, self.embeding_model, collection)
+            if imgflag:
+                images = img_load()
+                print(images)
+                response, descriptions = asyncio.run(concurrent_generation(self.prompt, self.history, self.file_documents, self.model, images, web_data))
+                return descriptions, response
+            else:
+                response = asyncio.run(data_from_web(self.prompt, self.file_documents, self.model, self.history, web_data))
+                print(response)
+                return response
         else:
-            response = data_from_web(self.prompt, documents, self.model)
+            response = asyncio.run(generate_response_with_ollama(self.prompt, self.model, self.history, self.file_documents))
             print(response)
             return response
 

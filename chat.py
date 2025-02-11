@@ -5,6 +5,8 @@ import pathlib
 from controlers import Build
 from models import Prompt
 from utils import *
+import traceback
+from utils.telegram_message import send_telegram_notification
 
 # Page configuration
 st.set_page_config(page_title="Document Query System with LangChain (ChatOllama)", layout="wide")
@@ -86,18 +88,37 @@ if prompt:
         if uploaded_files:
             prompt_model.fileflag = True
 
-        builder = Build(prompt=prompt_model, model=model)
+        builder = Build(prompt=prompt_model, model=model, history=st.session_state.messages)
 
+        if prompt_model.fileflag:
+            builder.file_documents = st.session_state.documents
 
-        image_descriptions, ai_reply = builder.building()
-        st.session_state.image_descriptions.update(image_descriptions)
+        if prompt_model.webflag:
+            if prompt_model.imgflag:
+                image_descriptions, ai_reply = builder.building()
+                st.session_state.image_descriptions.update(image_descriptions)
+            else:
+                ai_reply = builder.building()
+        else:
+            ai_reply = builder.building()
+
         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
         col1.chat_message("assistant").write(ai_reply)
-        for img, desc in image_descriptions.items():
-            col2.image(f"./img/{img}")
-            col2.write(f"**{img}**: {desc}")
+        send_telegram_notification()
+        try:
+            for img, desc in image_descriptions.items():
+                col2.image(f"./img/{img}")
+                col2.write(f"**{img}**: {desc}")
+        except NameError:
+            pass
+
+
+
 
     except Exception as e:
-        error_msg = f"Error processing request: {str(e)}"
+        tb = traceback.extract_tb(e.__traceback__)
+        filename, line, func, text = tb[-1]
+        error_msg = f"Error in {filename}, line {line}, in {func}(): {str(e)}"
+        print(error_msg)
         st.error(error_msg)
         st.session_state.messages.append({"role": "assistant", "content": error_msg})
