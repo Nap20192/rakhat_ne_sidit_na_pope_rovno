@@ -6,6 +6,8 @@ from controlers import Build
 from models import Prompt
 from utils import *
 import traceback
+
+from utils.preprocessing import filter_swear_words
 from utils.telegram_message import send_telegram_notification
 
 # Page configuration
@@ -61,11 +63,11 @@ st.session_state.image_descriptions = img_history
 
 # Display chat history
 for message in st.session_state.messages:
-    col1.chat_message(message['role']).write(message['content'])
+    col1.chat_message(message['role']).write(filter_swear_words(message['content']))
 
 for img, desc in st.session_state.image_descriptions.items():
     col2.image(f"./img/{img}")
-    col2.write(f"**{img}**: {desc}")
+    col2.write(f"**{img}**: {filter_swear_words(desc)}")
 
 # Sidebar controls
 model = st.sidebar.selectbox(
@@ -93,7 +95,8 @@ if st.sidebar.button("Clear history"):
 
 prompt = st.chat_input("Ask a question about the uploaded documents:")
 if prompt:
-    col1.chat_message("user").write(prompt)
+    censored_prompt = filter_swear_words(prompt)
+    col1.chat_message("user").write(censored_prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     try:
@@ -129,12 +132,12 @@ if prompt:
         history_save(st.session_state.messages)
 
 
-        col1.chat_message("assistant").write(ai_reply)
+        col1.chat_message("assistant").write(filter_swear_words(ai_reply))
         send_telegram_notification()
         try:
             for img, desc in st.session_state.image_descriptions.items():
                 col2.image(f"./img/{img}")
-                col2.write(f"**{img}**: {desc}")
+                col2.write(f"**{img}**: {filter_swear_words(desc)}")
         except NameError:
             pass
 
