@@ -7,6 +7,9 @@ import streamlit as st
 
 from models import Prompt
 from utils import *
+from utils.preprocessing import filter_swear_words
+from utils.telegram_message import send_telegram_notification
+
 
 class Build:
 
@@ -24,7 +27,6 @@ class Build:
             self.file_documents = []
             self.file_documents.extend(st.session_state.documents)
 
-
         if webflag:
             unified_scraping_flow(self.prompt)
             text = data_load()
@@ -35,6 +37,7 @@ class Build:
                 chunk_size=80,
                 chunk_overlap=3
             )
+
             embeding(split_docs, self.embeding_model, collection)
             if imgflag:
                 images = img_load()
@@ -44,11 +47,12 @@ class Build:
             else:
                 response = asyncio.run(data_from_web(self.prompt, self.file_documents, self.model, self.history, web_data))
                 print(response)
-                return response
+
         else:
             response = asyncio.run(generate_response_with_ollama(self.prompt, self.model, self.history, self.file_documents))
             print(response)
-            return response
+
+        return response
 
 
 # def main():
