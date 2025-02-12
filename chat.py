@@ -5,6 +5,10 @@ import pathlib
 from controlers import Build
 from models import Prompt
 from utils import *
+import traceback
+
+from utils.preprocessing import filter_swear_words
+from utils.telegram_message import send_telegram_notification
 
 # Page configuration
 st.set_page_config(page_title="Document Query System with LangChain (ChatOllama)", layout="wide")
@@ -49,9 +53,21 @@ if uploaded_files:
         for i, doc in enumerate(new_documents):
             col1.write(f"Document {i + 1}: {doc[:100]}...")
 
+history = history_load()
+print(history)
+st.session_state.messages = history
+
+img_history = img_history_load()
+print(img_history)
+st.session_state.image_descriptions = img_history
+
 # Display chat history
 for message in st.session_state.messages:
-    col1.chat_message(message['role']).write(message['content'])
+    col1.chat_message(message['role']).write(filter_swear_words(message['content']))
+
+for img, desc in st.session_state.image_descriptions.items():
+    col2.image(f"./img/{img}")
+    col2.write(f"**{img}**: {filter_swear_words(desc)}")
 
 # Sidebar controls
 model = st.sidebar.selectbox(
@@ -68,11 +84,19 @@ find_images = st.sidebar.selectbox(
     ("Yes", "No")
 )
 
+if st.sidebar.button("Clear history"):
+    st.session_state.messages = []
+    st.session_state.documents = []
+    st.session_state.image_descriptions = {}
+    history_clear()
+    st.rerun()
+
 # Chat input
+
 prompt = st.chat_input("Ask a question about the uploaded documents:")
 if prompt:
-    # Add user message to chat
-    col1.chat_message("user").write(prompt)
+    censored_prompt = filter_swear_words(prompt)
+    col1.chat_message("user").write(censored_prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     try:
@@ -86,18 +110,45 @@ if prompt:
         if uploaded_files:
             prompt_model.fileflag = True
 
-        builder = Build(prompt=prompt_model, model=model)
+        builder = Build(prompt=prompt_model, model=model, history=st.session_state.messages)
 
+        if prompt_model.fileflag:
+            builder.file_documents = st.session_state.documents
 
-        image_descriptions, ai_reply = builder.building()
-        st.session_state.image_descriptions.update(image_descriptions)
+        if prompt_model.webflag:
+            if prompt_model.imgflag:
+                image_descriptions, ai_reply = builder.building()
+                st.session_state.image_descriptions.update(image_descriptions)
+                img_history_save(st.session_state.image_descriptions)
+                print(st.session_state.image_descriptions)
+                print(img_history_load())
+            else:
+                ai_reply = builder.building()
+        else:
+            ai_reply = builder.building()
+
         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-        col1.chat_message("assistant").write(ai_reply)
-        for img, desc in image_descriptions.items():
-            col2.image(f"./img/{img}")
-            col2.write(f"**{img}**: {desc}")
+
+        history_save(st.session_state.messages)
+
+
+        col1.chat_message("assistant").write(filter_swear_words(ai_reply))
+        send_telegram_notification()
+        try:
+            for img, desc in st.session_state.image_descriptions.items():
+                col2.image(f"./img/{img}")
+                col2.write(f"**{img}**: {filter_swear_words(desc)}")
+        except NameError:
+            pass
+
+
+
 
     except Exception as e:
-        error_msg = f"Error processing request: {str(e)}"
+        send_telegram_notification(success=False)
+        tb = traceback.extract_tb(e.__traceback__)
+        filename, line, func, text = tb[-1]
+        error_msg = f"Error in {filename}, line {line}, in {func}(): {str(e)}"
+        print(error_msg)
         st.error(error_msg)
         st.session_state.messages.append({"role": "assistant", "content": error_msg})

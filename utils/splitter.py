@@ -39,8 +39,8 @@ def tokenize_chunks(
         )
         tokenized_chunks.append({
             "input_ids": tokens,
-            "attention_mask": [1] * len(tokens),  # For models needing masks
-            "metadata": doc.metadata  # Preserve original metadata
+            "attention_mask": [1] * len(tokens),
+            "metadata": doc.metadata
         })
 
     print("Tokenized chunks:")
