@@ -51,9 +51,21 @@ if uploaded_files:
         for i, doc in enumerate(new_documents):
             col1.write(f"Document {i + 1}: {doc[:100]}...")
 
+history = history_load()
+print(history)
+st.session_state.messages = history
+
+img_history = img_history_load()
+print(img_history)
+st.session_state.image_descriptions = img_history
+
 # Display chat history
 for message in st.session_state.messages:
     col1.chat_message(message['role']).write(message['content'])
+
+for img, desc in st.session_state.image_descriptions.items():
+    col2.image(f"./img/{img}")
+    col2.write(f"**{img}**: {desc}")
 
 # Sidebar controls
 model = st.sidebar.selectbox(
@@ -70,10 +82,17 @@ find_images = st.sidebar.selectbox(
     ("Yes", "No")
 )
 
+if st.sidebar.button("Clear history"):
+    st.session_state.messages = []
+    st.session_state.documents = []
+    st.session_state.image_descriptions = {}
+    history_clear()
+    st.rerun()
+
 # Chat input
+
 prompt = st.chat_input("Ask a question about the uploaded documents:")
 if prompt:
-    # Add user message to chat
     col1.chat_message("user").write(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -97,16 +116,23 @@ if prompt:
             if prompt_model.imgflag:
                 image_descriptions, ai_reply = builder.building()
                 st.session_state.image_descriptions.update(image_descriptions)
+                img_history_save(st.session_state.image_descriptions)
+                print(st.session_state.image_descriptions)
+                print(img_history_load())
             else:
                 ai_reply = builder.building()
         else:
             ai_reply = builder.building()
 
         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
+
+        history_save(st.session_state.messages)
+
+
         col1.chat_message("assistant").write(ai_reply)
         send_telegram_notification()
         try:
-            for img, desc in image_descriptions.items():
+            for img, desc in st.session_state.image_descriptions.items():
                 col2.image(f"./img/{img}")
                 col2.write(f"**{img}**: {desc}")
         except NameError:
@@ -116,6 +142,7 @@ if prompt:
 
 
     except Exception as e:
+        send_telegram_notification(success=False)
         tb = traceback.extract_tb(e.__traceback__)
         filename, line, func, text = tb[-1]
         error_msg = f"Error in {filename}, line {line}, in {func}(): {str(e)}"

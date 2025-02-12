@@ -45,7 +45,7 @@ def scrape_images(url):
     return img_links
 
 
-def save_scraped_data(scraped_data, filename="../scraped_data.json"):
+def save_scraped_data(scraped_data, filename="./scraped_data.json"):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(scraped_data, f, ensure_ascii=False, indent=4)
 
@@ -112,7 +112,7 @@ def search_with_playwright(query):
                 links.append(href)
 
         data = {"links": links}
-        with open("../search_results.json", "w", encoding="utf-8") as f:
+        with open("./search_results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
         browser.close()
@@ -134,14 +134,14 @@ def search_images_with_playwright(query):
                 images.append(src)
 
         data = {"images": images}
-        with open("../images_results.json", "w", encoding="utf-8") as f:
+        with open("./images_results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
         browser.close()
     return images
 
 def clean_image_directory():
-    directory = "../img"
+    directory = "./img"
     if not os.path.exists(directory):
         os.makedirs(directory, exist_ok=True)
         print(f"Created directory {directory}")
@@ -176,7 +176,7 @@ def unified_scraping_flow(search_query:Prompt):
 
     # Step 3: Load scraped data to get image links
     try:
-        with open("../scraped_data.json", "r", encoding="utf-8") as f:
+        with open("./scraped_data.json", "r", encoding="utf-8") as f:
             scraped_data = json.load(f)
             all_image_links = []
             for entry in scraped_data["data"]:
