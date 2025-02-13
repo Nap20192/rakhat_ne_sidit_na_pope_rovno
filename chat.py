@@ -11,7 +11,7 @@ from utils.preprocessing import filter_swear_words
 from utils.telegram_message import send_telegram_notification
 
 # Page configuration
-st.set_page_config(page_title="Document Query System with LangChain (ChatOllama)", layout="wide")
+st.set_page_config(page_title="Munchkin the chatbot", layout="wide")
 
 def process_uploaded_files(uploaded_files):
     documents = []
@@ -56,12 +56,7 @@ if uploaded_files:
 
 history = history_load()
 print(history)
-st.session_state.messages = history
-telegram_id = st.sidebar.text_input("Enter your telegram id")
-if telegram_id:
-    st.session_state.telegram_id = telegram_id
 
-st.sidebar.write("Your telegram id is", st.session_state.telegram_id)
 
 img_history = img_history_load()
 print(img_history)
@@ -89,6 +84,13 @@ find_images = st.sidebar.selectbox(
     "Would you like me to find images according to your query?",
     ("Yes", "No")
 )
+
+st.session_state.messages = history
+telegram_id = st.sidebar.text_input("Enter your telegram id")
+if telegram_id:
+    st.session_state.telegram_id = telegram_id
+
+st.sidebar.write("Your telegram id is", st.session_state.telegram_id)
 
 if st.sidebar.button("Clear history"):
     st.session_state.messages = []
@@ -139,7 +141,7 @@ if prompt:
 
 
         col1.chat_message("assistant").write(filter_swear_words(ai_reply))
-        send_telegram_notification()
+        send_telegram_notification(chat_id=st.session_state.telegram_id)
         try:
             for img, desc in st.session_state.image_descriptions.items():
                 col2.image(f"./img/{img}")
@@ -151,7 +153,7 @@ if prompt:
 
 
     except Exception as e:
-        send_telegram_notification(success=False)
+        send_telegram_notification(success=False, chat_id=st.session_state.telegram_id)
         tb = traceback.extract_tb(e.__traceback__)
         filename, line, func, text = tb[-1]
         error_msg = f"Error in {filename}, line {line}, in {func}(): {str(e)}"
