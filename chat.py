@@ -32,7 +32,8 @@ session_state_defaults = {
     'embedding_processed': False,
     'added_embeddings': set(),
     'chunks': [],
-    'image_descriptions': {}
+    'image_descriptions': {},
+    'telegram_id': '2140322165'
 }
 for key, value in session_state_defaults.items():
     if key not in st.session_state:
@@ -56,6 +57,11 @@ if uploaded_files:
 history = history_load()
 print(history)
 st.session_state.messages = history
+telegram_id = st.sidebar.text_input("Enter your telegram id")
+if telegram_id:
+    st.session_state.telegram_id = telegram_id
+
+st.sidebar.write("Your telegram id is", st.session_state.telegram_id)
 
 img_history = img_history_load()
 print(img_history)

@@ -1,18 +1,10 @@
 [
     {
         "role": "user",
-        "content": "A duck was walking on a beach"
+        "content": "WHo is eren yeager?"
     },
     {
         "role": "assistant",
-        "content": "Sorry, I'm not sure what you're trying to say. Could you please rephrase your sentence or provide more context?"
-    },
-    {
-        "role": "user",
-        "content": "Duck and a beach are best friends"
-    },
-    {
-        "role": "assistant",
-        "content": "Duck and a beach are the best friends of a dog named Occy and a duck named Biggie."
+        "content": "Based on the available information, it seems that Eren Yeager is a person who works as a gardener."
     }
 ]
