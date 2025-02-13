@@ -16,20 +16,34 @@ from langchain_community.document_loaders import WebBaseLoader
 from fake_useragent import UserAgent
 
 ua = UserAgent()
-os.environ["USER_AGENT"] = ua.random
-os.environ["SERPAPI_API_KEY"] = "d9a67728cd1fcce553648e220827779817f7bf9259ede9c74c35541dbba9adb5"  # Replace with your key
+os.environ["SERPAPI_API_KEY"] = "d9a67728cd1fcce553648e220827779817f7bf9259ede9c74c35541dbba9adb5" 
+SERPAPI_API_KEY = "d9a67728cd1fcce553648e220827779817f7bf9259ede9c74c35541dbba9adb5"
 
-def search_google(query, num_results=3):
-    search = SerpAPIWrapper(params={"user_agent": os.environ["USER_AGENT"]})
+def search_google(query, num_results=700):
+    print("Searching for:", query)
+    search = SerpAPIWrapper(params={"serpapi_api_key":SERPAPI_API_KEY,'engine': 'google', 'gl': 'us', 'google_domain': 'google.com', 'hl': 'en',"user_agent": ua.random})
     results = search.run(query)
+    print(results)
     return [result["link"] for result in results[:num_results] if "link" in result]
 
+def search_google_images(query, num_results=3):
+    search = SerpAPIWrapper(params={"engine": "google_images","user_agent": os.environ["USER_AGENT"]})
+    results = search.run(query)
+    print(results)
+    return results
+
 def load_pages(urls):
+    print("Loading pages...")
+    print(urls)
     loader = WebBaseLoader(urls)
     return loader.load()
 
 def transform_docs(docs):
+    print(docs)
+    
+    print("Transforming documents...")
     transformer = Html2TextTransformer()
+    print(transformer)
     return transformer.transform_documents(docs)
 
 

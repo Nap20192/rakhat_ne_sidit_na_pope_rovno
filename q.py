@@ -1,33 +1,28 @@
-import os
-
-from langchain_community.document_transformers import Html2TextTransformer
-from langchain_community.utilities import SerpAPIWrapper
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from langchain_community.document_loaders import WebBaseLoader
-from fake_useragent import UserAgent
+from langchain_community.document_loaders import AsyncHtmlLoader
+from langchain_community.document_transformers import Html2TextTransformer
+import re
 
-ua = UserAgent()
-os.environ["USER_AGENT"] = ua.random
-os.environ["SERPAPI_API_KEY"] = "d9a67728cd1fcce553648e220827779817f7bf9259ede9c74c35541dbba9adb5"  # Replace with your key
+def extract_images(text):
+    return re.findall(r'!\[.*?\]\((.*?)\)', text)
 
-def search_google(query, num_results=3):
-    search = SerpAPIWrapper(params={"user_agent": os.environ["USER_AGENT"]})
-    results = search.run(query)
-    return [result["link"] for result in results[:num_results] if "link" in result]
-
-def load_pages(urls):
-    loader = WebBaseLoader(urls)
-    return loader.load()
-
-def transform_docs(docs):
-    transformer = Html2TextTransformer()
-    return transformer.transform_documents(docs)
-
+def format_output(docs):
+    return [
+        {
+            "url": doc.metadata["source"],
+            "data": doc.page_content.split("\n"),
+            "img_links": extract_images(doc.page_content)
+        }
+        for doc in docs
+    ]
 scraping_chain = (
-        RunnablePassthrough()
-        | RunnableLambda(search_google)
-        | RunnableLambda(load_pages)
-        | RunnableLambda(transform_docs)
+    RunnablePassthrough()  # Принимает список URL
+    | RunnableLambda(lambda urls: AsyncHtmlLoader(urls).load())  # Загрузка
+    | Html2TextTransformer(ignore_images=False)  # Конвертация в Markdown
+    | RunnableLambda(format_output)  # Финализация формата
 )
 
-print(scraping_chain.invoke('donald trump'))
+urls = ["https://example.com", "https://lilianweng.github.io/posts/2023-06-23-agent/"]
+result = scraping_chain.invoke(urls)
+
+if __name__ 
