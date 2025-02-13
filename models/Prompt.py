@@ -1,4 +1,6 @@
 import re
+from models import User
+
 
 class Prompt:
     def __init__(self, text="", webflag=False,imgflag=False, fileflag=False):

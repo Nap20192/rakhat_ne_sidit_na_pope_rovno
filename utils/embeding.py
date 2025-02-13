@@ -1,7 +1,6 @@
 import ollama
 from langchain_core.documents import Document
 
-
 def embeding(docs: list[Document], embeding_model ="mxbai-embed-large",collection=None):
     for i, doc in enumerate(docs):
         text = doc.page_content

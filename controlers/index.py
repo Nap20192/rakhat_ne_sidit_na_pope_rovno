@@ -6,6 +6,8 @@ import asyncio
 import streamlit as st
 
 from models import Prompt
+from models import User
+
 from utils import *
 from utils.preprocessing import filter_swear_words
 from utils.telegram_message import send_telegram_notification
@@ -13,8 +15,9 @@ from utils.telegram_message import send_telegram_notification
 
 class Build:
 
-    def __init__(self, prompt:Prompt, history, model="llama2-uncensored",embeding_model = "mxbai-embed-large", file_documents=""):
+    def __init__(self,user:User,prompt:Prompt, history, model="llama2-uncensored",embeding_model = "mxbai-embed-large", file_documents=""):
         self.prompt = prompt
+        self.user = user
         self.model = model
         self.embeding_model = embeding_model
         self.history = history
@@ -38,7 +41,7 @@ class Build:
                 chunk_overlap=3
             )
 
-            embeding(split_docs, self.embeding_model, collection)
+            embeding(split_docs, self.embeding_model, self.user.get_collection())
             if imgflag:
                 images = img_load()
                 print(images)
@@ -55,10 +58,12 @@ class Build:
         return response
 
 
-# def main():
-#     prompt = Prompt("Who is the president of us?",imgflag=True)
-#     build = Build(prompt)
-#     build.building()
-#
-# if __name__ == "__main__":
-#     main()
+def main():
+    user =User(user_id = '1', username = 'vnkjd', chat_id = '708973515')
+
+    prompt = Prompt("Who is the president of us?",imgflag=True)
+    build = Build(user,prompt,history = history_load())
+    build.building()
+
+if __name__ == "__main__":
+    main()

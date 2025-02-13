@@ -1,9 +1,8 @@
 import requests
 
 
-def send_telegram_notification(success=True):
+def send_telegram_notification(success=True,chat_id = '2140322165'):
     bot_token = "7783224280:AAGnp2TdOPXXvH1n9rtS_E3ZpoaagKE7DN8"
-    chat_id = '2140322165'
     if success:
         message = ("✅Oi, mon ami! Your query has been sliced, diced, and served up fresh! You can check out the response in "
                "the chatbot app—go on, don’t keep it waiting! Allez, allez!")

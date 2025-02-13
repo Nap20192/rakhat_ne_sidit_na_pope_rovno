@@ -4,11 +4,55 @@ import os
 import requests
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup as bs
-from fake_useragent import UserAgent
 import urllib.request
 from urllib.parse import urljoin
-
 from models import Prompt
+import os
+
+from langchain_community.document_transformers import Html2TextTransformer
+from langchain_community.utilities import SerpAPIWrapper
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
+from langchain_community.document_loaders import WebBaseLoader
+from fake_useragent import UserAgent
+
+ua = UserAgent()
+os.environ["USER_AGENT"] = ua.random
+os.environ["SERPAPI_API_KEY"] = "d9a67728cd1fcce553648e220827779817f7bf9259ede9c74c35541dbba9adb5"  # Replace with your key
+
+def search_google(query, num_results=3):
+    search = SerpAPIWrapper(params={"user_agent": os.environ["USER_AGENT"]})
+    results = search.run(query)
+    return [result["link"] for result in results[:num_results] if "link" in result]
+
+def load_pages(urls):
+    loader = WebBaseLoader(urls)
+    return loader.load()
+
+def transform_docs(docs):
+    transformer = Html2TextTransformer()
+    return transformer.transform_documents(docs)
+
+
+
+scraping_chain = (
+        RunnablePassthrough()
+        | RunnableLambda(search_google)
+        | RunnableLambda(load_pages)
+        | RunnableLambda(transform_docs)
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def scrape_web_pages(url):
     headers = {"User-Agent": UserAgent().random}
@@ -167,14 +211,11 @@ MAIN FUNCTION
 
 def unified_scraping_flow(search_query:Prompt):
     clean_image_directory()
-    # Step 1: Perform web search and get links
     print(f"Searching for: {search_query.get_prompt()}")
     search_results = search_with_playwright(search_query.get_prompt())
-    # Step 2: Scrape content from found links
     print("\nScraping content from top results...")
     scrape_data_from_links(search_results)
 
-    # Step 3: Load scraped data to get image links
     try:
         with open("./scraped_data.json", "r", encoding="utf-8") as f:
             scraped_data = json.load(f)
@@ -186,7 +227,6 @@ def unified_scraping_flow(search_query:Prompt):
         print(f"Error loading scraped data: {e}")
         return
 
-    # Step 4: Download images
     print("\nDownloading images...")
     download_images(all_image_links)
 

@@ -1,5 +1,5 @@
 import ollama
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, AIMessage
 import chromadb
 import os
@@ -30,7 +30,7 @@ async def generate_response_with_ollama(prompt: Prompt, model, history, document
     messages.append(HumanMessage(content=prompt_with_context))
 
     try:
-        response = llm(messages)
+        response = llm.invoke(messages)
         return response.content
     except ValueError as e:
         print(f"Error generating response: {e}")
@@ -71,7 +71,7 @@ async def data_from_web(prompt: Prompt, documents, model, history, web_data):
     messages.append(HumanMessage(content=prompt_with_context))
 
     try:
-        response = llm(messages)
+        response = llm.invoke(messages)
         return response.content
     except ValueError as e:
         print(f"Error generating response: {e}")
