@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup as bs
 from fake_useragent import UserAgent
 import urllib.request
 from urllib.parse import urljoin
+from PIL import Image
+import io
 
 from models import Prompt
 
@@ -75,7 +77,7 @@ def scrape_data_from_links(links):
     save_scraped_data(data)
 
 
-def download_images(img_links):
+def download_images(img_links, min_size_kb=10):
     counter = 1
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
@@ -86,9 +88,17 @@ def download_images(img_links):
         try:
             req = urllib.request.Request(link, headers=headers)
             with urllib.request.urlopen(req) as response:
-                with open(f"./img/{counter}.jpg", 'wb') as f:
-                    f.write(response.read())
-            counter += 1
+                img_data = response.read()
+
+            file_size_kb = len(img_data) / 1024
+            if file_size_kb < min_size_kb:
+                print(f"Skipping {link} (File size: {file_size_kb:.2f} KB - Out of range)")
+                continue
+            else:
+                with urllib.request.urlopen(req) as response:
+                    with open(f"./img/{counter}.jpg", 'wb') as f:
+                        f.write(response.read())
+                counter += 1
         except Exception as e:
             print(f"Failed to download image from {link}: {e}")
             continue

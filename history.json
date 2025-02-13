@@ -1,10 +1,10 @@
 [
     {
         "role": "user",
-        "content": "WHo is eren yeager?"
+        "content": "trump"
     },
     {
         "role": "assistant",
-        "content": "Based on the available information, it seems that Eren Yeager is a person who works as a gardener."
+        "content": "Using this web data, which documents mention the expected topics of discussion between President Trump and Indian Prime Minister Narendra Modi during their meeting at the White House on February 12, 2025? The documents provide information about the background and context for the meetings."
     }
 ]
